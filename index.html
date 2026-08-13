@@ -244,7 +244,7 @@ const SUPABASE_KEY='sb_publishable_Buo2ZaOvpcmeiot45B4g-w_C6lYza6A';
 if(!window.supabase){document.body.innerHTML='<div style="padding:30px;font-family:sans-serif">Supabase SDK failed to load.</div>';throw new Error('Supabase SDK unavailable');}
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let lang=localStorage.getItem('tasky_admin_lang')||'ar';
-window.TASKY_ADMIN_BUILD='V166';console.info('Tasky Admin build',window.TASKY_ADMIN_BUILD);
+window.TASKY_ADMIN_BUILD='V167';console.info('Tasky Admin build',window.TASKY_ADMIN_BUILD);
 let currentUserId=null;
 let activeNav='platformAdmin';
 function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -1570,6 +1570,60 @@ setPlatformAdminView=function(id){
   setPlatformAdminViewBaseV166(id);
   if(id==='packages')fetchPlatformPackagesV166({render:true});
 };
+</script>
+
+
+<script id="tasky-admin-v167-performance-js">
+window.TASKY_ADMIN_BUILD='V167';console.info('Tasky Admin build',window.TASKY_ADMIN_BUILD);
+
+const adminPerf167={inFlight:new Map(),renderScheduled:false,renderPending:false,lastPackagesAt:0};
+
+async function adminOnceV167(key,fn){
+  if(adminPerf167.inFlight.has(key))return adminPerf167.inFlight.get(key);
+  const p=(async()=>{try{return await fn()}finally{adminPerf167.inFlight.delete(key)}})();
+  adminPerf167.inFlight.set(key,p);
+  return p;
+}
+
+/* Dedupe the large admin dashboard fetch. */
+const fetchPlatformAdminDataBaseV167=fetchPlatformAdminData;
+fetchPlatformAdminData=async function(){
+  return adminOnceV167('platform-admin-data',()=>fetchPlatformAdminDataBaseV167());
+};
+
+/* Packages page should not refetch summary every render/navigation bounce. */
+const fetchPlatformPackagesBaseV167=fetchPlatformPackagesV166;
+fetchPlatformPackagesV166=async function({render=false,force=false}={}){
+  const fresh=platformPackagesV166?.packages?.length && (Date.now()-adminPerf167.lastPackagesAt<30000);
+  if(fresh&&!force){
+    if(render&&platformAdminView==='packages')renderModule();
+    return platformPackagesV166;
+  }
+  const result=await adminOnceV167('packages',()=>fetchPlatformPackagesBaseV167({render:false}));
+  adminPerf167.lastPackagesAt=Date.now();
+  if(render&&platformAdminView==='packages')renderModule();
+  return result;
+};
+
+/* Coalesce admin render bursts. */
+const renderModuleAdminBaseV167=renderModule;
+renderModule=function(){
+  adminPerf167.renderPending=true;
+  if(adminPerf167.renderScheduled)return;
+  adminPerf167.renderScheduled=true;
+  requestAnimationFrame(()=>{
+    adminPerf167.renderScheduled=false;
+    if(!adminPerf167.renderPending)return;
+    adminPerf167.renderPending=false;
+    renderModuleAdminBaseV167();
+  });
+};
+
+/* Lazy images in admin UI. */
+function adminLazyImagesV167(root=document){
+  root.querySelectorAll?.('img:not([loading])').forEach(img=>{img.loading='lazy';img.decoding='async'});
+}
+adminLazyImagesV167(document);
 </script>
 
 </body></html>
