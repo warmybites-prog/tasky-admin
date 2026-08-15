@@ -95,6 +95,36 @@ html[dir=rtl] .platform-notification-swipe-action{justify-content:flex-start}
 }
 </style>
 
+
+<style id="tasky-admin-v169-connected-css">
+.tasky-bridge-card-v169{
+  border:1px solid var(--border);border-radius:16px;padding:13px;
+  background:linear-gradient(180deg,var(--card),color-mix(in srgb,var(--green-tint) 55%,var(--card)));
+  margin-bottom:12px
+}
+.tasky-bridge-head-v169{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.tasky-bridge-title-v169{display:flex;align-items:center;gap:9px}
+.tasky-bridge-dot-v169{width:10px;height:10px;border-radius:50%;background:var(--muted);box-shadow:0 0 0 4px rgba(0,0,0,.025)}
+.tasky-bridge-card-v169.healthy .tasky-bridge-dot-v169{background:var(--green)}
+.tasky-bridge-card-v169.partial .tasky-bridge-dot-v169{background:#c58b1b}
+.tasky-bridge-card-v169.error .tasky-bridge-dot-v169{background:var(--danger)}
+.tasky-bridge-title-v169 h3{margin:0;font-size:12px}
+.tasky-bridge-title-v169 p{margin:3px 0 0;color:var(--muted);font-size:9.5px;line-height:1.6}
+.tasky-bridge-meta-v169{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.tasky-bridge-pill-v169{border:1px solid var(--border);border-radius:999px;padding:4px 7px;background:var(--card);font-size:8.7px;color:var(--ink-soft)}
+.tasky-app-map-v169{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}
+.tasky-app-map-card-v169{border:1px solid var(--border);border-radius:13px;padding:10px;background:var(--paper);min-width:0}
+.tasky-app-map-card-v169 b{display:block;font-size:10.5px;margin-bottom:4px}
+.tasky-app-map-card-v169 span{display:block;color:var(--muted);font-size:8.5px;line-height:1.55}
+.tasky-app-map-card-v169 .status{margin-top:7px;font-size:8px;font-weight:800;color:var(--green)}
+.tasky-app-map-card-v169.disabled .status{color:var(--danger)}
+@media(max-width:1000px){.tasky-app-map-v169{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){
+  .tasky-bridge-head-v169{flex-direction:column}
+  .tasky-app-map-v169{grid-template-columns:1fr}
+}
+</style>
+
 </head>
 <body>
 <div id="loginView">
@@ -482,7 +512,7 @@ function platformProductControlsHtml(){
   const activeAnns=anns.filter(a=>a.is_active).length,suspended=(platformProductControls?.workspace_controls||[]).filter(c=>c.access_status==='suspended').length;
   return `<div class="product-switch-grid"><div class="product-switch-card ${s.maintenance_mode?'danger':''}"><div class="switch-row"><div class="switch-copy"><h4>${lang==='ar'?'وضع الصيانة العام':'Global maintenance mode'}</h4><p>${lang==='ar'?'عند التفعيل يُحجب تطبيق الشركات مع إبقاء لوحة الإدارة متاحة.':'Blocks the customer app while keeping the admin console available.'}</p></div><label class="tasky-switch"><input id="maintenanceModeSwitch" type="checkbox" ${s.maintenance_mode?'checked':''}><i></i></label></div></div><div class="product-switch-card ${s.workspace_creation_enabled===false?'warn':''}"><div class="switch-row"><div class="switch-copy"><h4>${lang==='ar'?'إنشاء شركات جديدة':'New workspace creation'}</h4><p>${lang==='ar'?'تحكم في السماح للحسابات الجديدة بإنشاء مساحة عمل جديدة.':'Allow or pause new customer workspace creation.'}</p></div><label class="tasky-switch"><input id="workspaceCreationSwitch" type="checkbox" ${s.workspace_creation_enabled!==false?'checked':''}><i></i></label></div></div></div>
   <div class="platform-panel"><div class="platform-panel-head"><div><h3>${lang==='ar'?'رسالة الصيانة':'Maintenance message'}</h3><p>${lang==='ar'?'تظهر للمستخدمين إذا تم تفعيل وضع الصيانة.':'Shown to customers while maintenance mode is enabled.'}</p></div><button class="platform-mini-btn primary" onclick="savePlatformOperationalSettings()">${lang==='ar'?'حفظ حالة المنصة':'Save platform state'}</button></div><div class="platform-form-grid"><div class="field"><label>${lang==='ar'?'العنوان بالعربية':'Arabic title'}</label><input id="maintenanceTitleAr" value="${escapeHtml(s.maintenance_title_ar||'تاسكي تحت الصيانة المؤقتة')}"></div><div class="field"><label>${lang==='ar'?'العنوان بالإنجليزية':'English title'}</label><input id="maintenanceTitleEn" value="${escapeHtml(s.maintenance_title_en||'Tasky is under maintenance')}"></div><div class="field full"><label>${lang==='ar'?'الرسالة بالعربية':'Arabic message'}</label><textarea id="maintenanceMessageAr" rows="2">${escapeHtml(s.maintenance_message_ar||'نعمل حاليًا على تحديث المنصة. يرجى المحاولة لاحقًا.')}</textarea></div><div class="field full"><label>${lang==='ar'?'الرسالة بالإنجليزية':'English message'}</label><textarea id="maintenanceMessageEn" rows="2">${escapeHtml(s.maintenance_message_en||'We are currently updating the platform. Please try again later.')}</textarea></div></div></div>
-  <div class="platform-panel"><div class="platform-panel-head"><div><h3>${lang==='ar'?'صلاحيات الوحدات حسب الباقة':'Module entitlements by plan'}</h3><p>${lang==='ar'?'أي تغيير هنا ينعكس على القائمة الجانبية لتطبيق الشركات عند إعادة تحميله.':'Changes here affect customer-app module access after reload.'}</p></div></div><div class="platform-table-wrap"><table class="module-matrix"><thead><tr><th>${lang==='ar'?'الوحدة':'Module'}</th><th>${lang==='ar'?'تشغيل عام':'Global'}</th><th>${lang==='ar'?'مجاني':'Free'}</th><th>${lang==='ar'?'احترافي':'Pro'}</th><th>${lang==='ar'?'أعمال':'Business'}</th><th></th></tr></thead><tbody>${mods.map(m=>`<tr><td><b>${escapeHtml(lang==='ar'?m.label_ar:m.label_en)}</b><br><small style="color:var(--muted)">${escapeHtml(m.module_key)}</small></td>${['global_enabled','free_enabled','pro_enabled','business_enabled'].map(k=>`<td><label class="tasky-switch mini-toggle"><input id="mod_${m.module_key}_${k}" type="checkbox" ${m[k]?'checked':''}><i></i></label></td>`).join('')}<td><button class="platform-mini-btn" onclick="savePlatformModule('${m.module_key}')">${lang==='ar'?'حفظ':'Save'}</button></td></tr>`).join('')}</tbody></table></div></div>
+  <div class="platform-panel"><div class="platform-panel-head"><div><h3>${lang==='ar'?'صلاحيات الوحدات حسب الباقة':'Module entitlements by plan'}</h3><p>${lang==='ar'?'أي تغيير هنا ينعكس على تطبيق تاسكي عبر طبقة المزامنة، ويُراجع تلقائيًا من لوحة التحكم.':'Changes here are propagated through the Tasky control-plane sync and verified from the admin console.'}</p></div></div><div class="platform-table-wrap"><table class="module-matrix"><thead><tr><th>${lang==='ar'?'الوحدة':'Module'}</th><th>${lang==='ar'?'تشغيل عام':'Global'}</th><th>${lang==='ar'?'مجاني':'Free'}</th><th>${lang==='ar'?'احترافي':'Pro'}</th><th>${lang==='ar'?'أعمال':'Business'}</th><th></th></tr></thead><tbody>${mods.map(m=>`<tr><td><b>${escapeHtml(lang==='ar'?m.label_ar:m.label_en)}</b><br><small style="color:var(--muted)">${escapeHtml(m.module_key)}</small></td>${['global_enabled','free_enabled','pro_enabled','business_enabled'].map(k=>`<td><label class="tasky-switch mini-toggle"><input id="mod_${m.module_key}_${k}" type="checkbox" ${m[k]?'checked':''}><i></i></label></td>`).join('')}<td><button class="platform-mini-btn" onclick="savePlatformModule('${m.module_key}')">${lang==='ar'?'حفظ':'Save'}</button></td></tr>`).join('')}</tbody></table></div></div>
   <div class="platform-grid-2"><div class="platform-panel"><div class="platform-panel-head"><div><h3>${lang==='ar'?'إعلانات المنصة':'Platform announcements'}</h3><p>${lang==='ar'?`${activeAnns} إعلان نشط حاليًا.`:`${activeAnns} active announcements.`}</p></div><button class="platform-mini-btn primary" onclick="openPlatformAnnouncementModal()">${lang==='ar'?'+ إعلان جديد':'+ New announcement'}</button></div>${anns.length?anns.map(platformAnnouncementCard).join(''):`<div class="platform-empty">${lang==='ar'?'لا توجد إعلانات بعد':'No announcements yet'}</div>`}</div><div class="platform-panel"><div class="platform-panel-head"><div><h3>${lang==='ar'?'حوكمة الوصول':'Access governance'}</h3><p>${lang==='ar'?'إيقاف الشركات يتم من صفحة تفاصيل الشركة ويُطبق فورًا في تطبيق العميل.':'Workspace suspension is managed in company details and enforced immediately in the customer app.'}</p></div></div><div class="platform-detail-grid"><div class="platform-detail-cell"><span>${lang==='ar'?'شركات موقوفة':'Suspended companies'}</span><b class="${suspended?'support-open-value':''}">${suspended}</b></div><div class="platform-detail-cell"><span>${lang==='ar'?'إعلانات نشطة':'Active announcements'}</span><b>${activeAnns}</b></div><div class="platform-detail-cell"><span>${lang==='ar'?'وحدات متوقفة عالميًا':'Globally disabled modules'}</span><b>${mods.filter(m=>!m.global_enabled).length}</b></div></div><button class="platform-mini-btn" onclick="setPlatformAdminView('companies')">${lang==='ar'?'إدارة وصول الشركات':'Manage company access'}</button></div></div>${platformUsageHtml()}`;
 }
 async function savePlatformOperationalSettings(){
@@ -696,9 +726,381 @@ sb.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){stopPlatfor
 setLang(lang);bootAdmin();
 </script>
 
-<script id="tasky-admin-v168-build-marker">
-window.TASKY_ADMIN_BUILD='V168';
-console.info('Tasky Admin',window.TASKY_ADMIN_BUILD,'notifications-unified');
+<script id="tasky-admin-v169-connected-runtime-js">
+(function(){
+  const CHANNEL='tasky-control-plane-cp1';
+  const STORAGE_KEY='tasky_control_plane_invalidate_cp1';
+  const APP_MAP=[
+    {id:'work',ar:'إدارة العمل',en:'Tasky Work',modules:['home','tasks']},
+    {id:'marketing',ar:'التسويق',en:'Tasky Marketing',modules:['campaigns','content']},
+    {id:'hr',ar:'الموارد البشرية',en:'Tasky HR',modules:['hr','experience']},
+    {id:'sales',ar:'المبيعات والعملاء',en:'Tasky CRM',modules:['crm']},
+    {id:'requests',ar:'الطلبات',en:'Tasky Requests',modules:['requests']},
+    {id:'bookings',ar:'الحجوزات',en:'Tasky Bookings',modules:['bookings']},
+    {id:'inventory',ar:'المخزون',en:'Tasky Inventory',modules:['inventory']},
+    {id:'procurement',ar:'المشتريات والموردون',en:'Tasky Procurement',modules:['vendors']},
+    {id:'events',ar:'الفعاليات',en:'Tasky Events',modules:['events']},
+    {id:'finance',ar:'الميزانيات',en:'Tasky Finance',modules:['budgets']},
+    {id:'meetings',ar:'الاجتماعات',en:'Tasky Meetings',modules:['meetings']},
+    {id:'connect',ar:'التواصل',en:'Tasky Connect',modules:['connect']},
+    {id:'analytics',ar:'التحليلات',en:'Tasky Analytics',modules:['analytics']},
+    {id:'reports',ar:'التقارير',en:'Tasky Reports',modules:['reports']},
+    {id:'surveys',ar:'الاستبيانات',en:'Tasky Surveys',modules:['surveys']},
+    {id:'integrations',ar:'التكاملات',en:'Tasky Integrations',modules:['integrations']}
+  ];
+
+  window.TASKY_CONTROL_PLANE_CONTRACT='CP1';
+
+  let bridgeChannel=null;
+  let verifyPromise=null;
+  let fetchAdminPromise=null;
+  let lastAdminFetchAt=0;
+  const mutationLocks=new Set();
+
+  let bridgeState={
+    state:'idle',
+    last_verified_at:0,
+    checked_workspaces:0,
+    runtime_ok:0,
+    entitlement_ok:0,
+    product_ok:false,
+    errors:[],
+    contract:'CP1',
+    customer_build:'V235',
+    admin_build:'V169'
+  };
+  window.taskyAdminBridgeStateV169=bridgeState;
+
+  function dtV169(ts){
+    if(!ts)return lang==='ar'?'لم يتم التحقق بعد':'Not verified yet';
+    try{return new Date(ts).toLocaleString()}catch(_){return '—'}
+  }
+
+  function notifyV169(reason='admin-change',workspaceId=null){
+    const msg={
+      type:'invalidate',contract:'CP1',reason,
+      workspace_id:workspaceId||null,
+      at:Date.now(),source:'tasky-admin-v169'
+    };
+
+    try{
+      if('BroadcastChannel' in window){
+        if(!bridgeChannel)bridgeChannel=new BroadcastChannel(CHANNEL);
+        bridgeChannel.postMessage(msg);
+      }
+    }catch(_){}
+
+    try{
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(msg));
+      setTimeout(()=>localStorage.removeItem(STORAGE_KEY),100);
+    }catch(_){}
+  }
+  window.taskyAdminNotifyControlPlaneV169=notifyV169;
+
+  function moduleMapV169(){
+    const rows=platformProductControls?.modules||[];
+    return new Map(rows.map(x=>[String(x.module_key),x]));
+  }
+
+  function appCatalogHtmlV169(){
+    const map=moduleMapV169();
+
+    return `<div class="platform-panel">
+      <div class="platform-panel-head">
+        <div>
+          <h3>${lang==='ar'?'خريطة تطبيقات تاسكي':'Tasky application map'}</h3>
+          <p>${lang==='ar'
+            ?'نفس تجميع التطبيقات المستخدم في تاسكي V235، حتى لا تختلف لوحة الإدارة عن تطبيق الشركات.'
+            :'The same application grouping used by Tasky V235, keeping Admin and the customer app aligned.'}</p>
+        </div>
+      </div>
+      <div class="tasky-app-map-v169">
+        ${APP_MAP.map(app=>{
+          const controlled=app.modules.map(k=>map.get(k)).filter(Boolean);
+          const enabled=controlled.length===0||controlled.some(m=>m.global_enabled!==false);
+          const missing=app.modules.filter(k=>k!=='home'&&!map.has(k));
+          return `<div class="tasky-app-map-card-v169 ${enabled?'':'disabled'}">
+            <b>${escapeHtml(lang==='ar'?app.ar:app.en)}</b>
+            <span>${escapeHtml(app.modules.filter(k=>k!=='home').join(' · ')||'core')}</span>
+            ${missing.length?`<span>${lang==='ar'?'غير ممثلة في تحكم الوحدات:':'Not represented in module controls:'} ${escapeHtml(missing.join(', '))}</span>`:''}
+            <div class="status">${enabled?(lang==='ar'?'متاح في خريطة المنتج':'Available in product map'):(lang==='ar'?'متوقف عالميًا':'Globally disabled')}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  function bridgeCardHtmlV169(){
+    const s=bridgeState;
+    const cls=s.state==='healthy'?'healthy':s.state==='error'?'error':s.state==='partial'?'partial':'';
+    const title=s.state==='healthy'
+      ?(lang==='ar'?'الترابط مع تطبيق تاسكي سليم':'Tasky connection is healthy')
+      :s.state==='partial'
+        ?(lang==='ar'?'الترابط يعمل جزئيًا':'Tasky connection is partially available')
+        :s.state==='error'
+          ?(lang==='ar'?'يوجد خلل في التحقق من الترابط':'Control-plane verification has issues')
+          :(lang==='ar'?'لم يتم التحقق من الترابط بعد':'Control-plane connection not verified yet');
+
+    return `<div class="tasky-bridge-card-v169 ${cls}">
+      <div class="tasky-bridge-head-v169">
+        <div class="tasky-bridge-title-v169">
+          <span class="tasky-bridge-dot-v169"></span>
+          <div>
+            <h3>${title}</h3>
+            <p>${lang==='ar'
+              ?'يتم التحقق من نفس Runtime والصلاحيات التي يقرأها تطبيق الشركات.'
+              :'Verifies the same runtime and entitlements consumed by the customer app.'}</p>
+          </div>
+        </div>
+        <button class="platform-mini-btn primary" onclick="taskyAdminVerifyControlPlaneV169({force:true,showToast:true})">
+          ${lang==='ar'?'تحقق الآن':'Verify now'}
+        </button>
+      </div>
+      <div class="tasky-bridge-meta-v169">
+        <span class="tasky-bridge-pill-v169">CP1</span>
+        <span class="tasky-bridge-pill-v169">${lang==='ar'?'تاسكي':'Tasky'} V235</span>
+        <span class="tasky-bridge-pill-v169">${lang==='ar'?'أدمن':'Admin'} V169</span>
+        <span class="tasky-bridge-pill-v169">${lang==='ar'?'مساحات تم فحصها':'Workspaces checked'}: ${Number(s.checked_workspaces||0)}</span>
+        <span class="tasky-bridge-pill-v169">Runtime: ${Number(s.runtime_ok||0)}</span>
+        <span class="tasky-bridge-pill-v169">Entitlements: ${Number(s.entitlement_ok||0)}</span>
+        <span class="tasky-bridge-pill-v169">${dtV169(s.last_verified_at)}</span>
+      </div>
+      ${s.errors?.length?`<div style="margin-top:8px;color:var(--danger);font-size:8.8px;line-height:1.6">${escapeHtml(s.errors.slice(0,3).join(' · '))}</div>`:''}
+    </div>`;
+  }
+
+  function sampleWorkspacesV169(explicitWorkspaceId=null){
+    const all=platformWorkspaces||[];
+    if(explicitWorkspaceId){
+      const found=all.find(x=>String(x.workspace_id)===String(explicitWorkspaceId));
+      return [found||{workspace_id:explicitWorkspaceId,plan_id:'free',workspace_name:explicitWorkspaceId}];
+    }
+
+    const picked=[];
+    const seenPlans=new Set();
+
+    for(const w of all){
+      const plan=String(w.plan_id||'free');
+      if(!seenPlans.has(plan)){
+        picked.push(w);seenPlans.add(plan);
+      }
+      if(picked.length>=3)break;
+    }
+
+    if(picked.length<3){
+      for(const w of all){
+        if(!picked.some(x=>String(x.workspace_id)===String(w.workspace_id)))picked.push(w);
+        if(picked.length>=3)break;
+      }
+    }
+
+    return picked;
+  }
+
+  window.taskyAdminVerifyControlPlaneV169=async function({force=false,showToast=false,workspaceId=null}={}){
+    if(verifyPromise&&!force)return verifyPromise;
+
+    bridgeState={...bridgeState,state:'checking',errors:[]};
+    window.taskyAdminBridgeStateV169=bridgeState;
+    if(activePlatformAdminView==='product')renderModule();
+
+    verifyPromise=(async()=>{
+      const errors=[];
+      let productOk=false,runtimeOk=0,entitlementOk=0;
+
+      try{
+        const product=await sb.rpc('tasky_platform_product_controls');
+        if(product.error)throw product.error;
+        productOk=true;
+        if(product.data)platformProductControls=product.data;
+      }catch(err){
+        errors.push(`product: ${err?.message||err}`);
+      }
+
+      const samples=sampleWorkspacesV169(workspaceId);
+
+      for(const w of samples){
+        const wid=w.workspace_id;
+        const plan=w.plan_id||'free';
+
+        try{
+          let runtime=await sb.rpc('tasky_platform_runtime_v65',{p_workspace_id:wid});
+          if(runtime.error)runtime=await sb.rpc('tasky_platform_runtime_v641',{p_workspace_id:wid});
+          if(runtime.error)throw runtime.error;
+          runtimeOk++;
+        }catch(err){
+          errors.push(`runtime ${w.workspace_name||wid}: ${err?.message||err}`);
+        }
+
+        try{
+          const ent=await sb.rpc('tasky_entitlements_runtime_v165',{
+            p_workspace_id:wid,
+            p_legacy_plan:plan
+          });
+          if(ent.error)throw ent.error;
+          entitlementOk++;
+        }catch(err){
+          errors.push(`entitlements ${w.workspace_name||wid}: ${err?.message||err}`);
+        }
+      }
+
+      const state=errors.length
+        ?(productOk&&(runtimeOk>0||entitlementOk>0)?'partial':'error')
+        :'healthy';
+
+      bridgeState={
+        state,
+        last_verified_at:Date.now(),
+        checked_workspaces:samples.length,
+        runtime_ok:runtimeOk,
+        entitlement_ok:entitlementOk,
+        product_ok:productOk,
+        errors,
+        contract:'CP1',
+        customer_build:'V235',
+        admin_build:'V169'
+      };
+      window.taskyAdminBridgeStateV169=bridgeState;
+
+      if(activePlatformAdminView==='product')renderModule();
+
+      if(showToast){
+        taskyToast(
+          state==='healthy'
+            ?(lang==='ar'?'تم التحقق من الترابط مع تاسكي':'Tasky connection verified')
+            :(lang==='ar'?'اكتمل التحقق مع ملاحظات':'Verification completed with notes'),
+          {tone:state==='healthy'?'success':'warning'}
+        );
+      }
+
+      return bridgeState;
+    })().catch(err=>{
+      bridgeState={
+        ...bridgeState,
+        state:'error',
+        last_verified_at:Date.now(),
+        errors:[err?.message||String(err||'verification failed')]
+      };
+      window.taskyAdminBridgeStateV169=bridgeState;
+      if(activePlatformAdminView==='product')renderModule();
+      return bridgeState;
+    }).finally(()=>{verifyPromise=null});
+
+    return verifyPromise;
+  };
+
+  if(typeof platformProductControlsHtml==='function'){
+    const baseProductHtml=platformProductControlsHtml;
+    platformProductControlsHtml=function(){
+      return bridgeCardHtmlV169()+appCatalogHtmlV169()+baseProductHtml();
+    };
+  }
+
+  if(typeof fetchPlatformAdminData==='function'){
+    const baseFetch=fetchPlatformAdminData;
+    fetchPlatformAdminData=async function(...args){
+      if(fetchAdminPromise)return fetchAdminPromise;
+      fetchAdminPromise=Promise.resolve(baseFetch.apply(this,args))
+        .finally(()=>{
+          lastAdminFetchAt=Date.now();
+          fetchAdminPromise=null;
+        });
+      return fetchAdminPromise;
+    };
+  }
+
+  async function afterMutationV169(reason,workspaceId=null){
+    notifyV169(reason,workspaceId);
+    await taskyAdminVerifyControlPlaneV169({force:true,workspaceId});
+  }
+
+  function workspaceFromArgsV169(name,args){
+    if(name==='setPlatformWorkspaceAccess')return args[0]||null;
+    if(name==='submitSubscriptionLifecycle')return args[1]||null;
+    if(name==='submitCustomerSuccess')return args[1]||null;
+    return null;
+  }
+
+  function wrapMutationV169(name,reason){
+    const base=window[name];
+    if(typeof base!=='function'||base.__taskyV169Wrapped)return;
+
+    const wrapped=async function(...args){
+      const lock=`${name}:${args.filter(x=>typeof x!=='object').join(':')}`;
+      if(mutationLocks.has(lock))return false;
+      mutationLocks.add(lock);
+
+      const eventArg=args.find(x=>x&&typeof x==='object'&&'currentTarget' in x);
+      const trigger=(eventArg?.currentTarget instanceof HTMLElement)
+        ?eventArg.currentTarget
+        :(document.activeElement instanceof HTMLButtonElement?document.activeElement:null);
+
+      const wasDisabled=!!trigger?.disabled;
+      if(trigger)trigger.disabled=true;
+
+      try{
+        const result=await base.apply(this,args);
+        await afterMutationV169(reason,workspaceFromArgsV169(name,args));
+        return result;
+      }finally{
+        if(trigger&&!wasDisabled)trigger.disabled=false;
+        mutationLocks.delete(lock);
+      }
+    };
+
+    wrapped.__taskyV169Wrapped=true;
+    window[name]=wrapped;
+  }
+
+  [
+    ['savePlatformOperationalSettings','platform-settings'],
+    ['savePlatformModule','module-control'],
+    ['savePlatformAnnouncement','announcement'],
+    ['deletePlatformAnnouncement','announcement'],
+    ['setPlatformWorkspaceAccess','workspace-access'],
+    ['resolvePlatformPlanRequest','plan-change'],
+    ['resolvePlatformCreditRequest','credit-order'],
+    ['submitSubscriptionLifecycle','subscription'],
+    ['submitCustomerSuccess','customer-success']
+  ].forEach(([name,reason])=>wrapMutationV169(name,reason));
+
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible'&&platformAdminContext?.is_admin&&Date.now()-lastAdminFetchAt>45000){
+      fetchPlatformAdminData()
+        .then(()=>{
+          if(activePlatformAdminView==='product')renderModule();
+          return taskyAdminVerifyControlPlaneV169();
+        })
+        .catch(()=>{});
+    }
+  });
+
+  let bootChecks=0;
+  const bootTimer=setInterval(()=>{
+    bootChecks++;
+    if(platformAdminContext?.is_admin){
+      clearInterval(bootTimer);
+      taskyAdminVerifyControlPlaneV169().catch(()=>{});
+    }else if(bootChecks>40){
+      clearInterval(bootTimer);
+    }
+  },250);
+
+  window.taskyAdminConnectedHealthV169=function(){
+    return {
+      ...bridgeState,
+      build:'V169',
+      contract:'CP1',
+      admin_role:platformAdminContext?.role||null,
+      workspaces_loaded:(platformWorkspaces||[]).length,
+      product_modules:(platformProductControls?.modules||[]).length,
+      last_admin_fetch_at:lastAdminFetchAt
+    };
+  };
+
+  window.TASKY_ADMIN_BUILD='V169';
+  console.info('Tasky Admin build V169 — connected control plane');
+})();
 </script>
 
 </body></html>
