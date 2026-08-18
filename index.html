@@ -658,7 +658,7 @@ setLang(lang);bootAdmin();
       return platformPlansV61;
     }
     try{
-      const {data,error}=await sb.rpc('tasky_platform_plans_summary_v61');
+      const {data,error}=await sb.rpc('tasky_platform_plans_summary_v62');
       if(error)throw error;
       platformPlansV61={
         installed:true,
@@ -799,13 +799,42 @@ setLang(lang);bootAdmin();
   function requestRowsV61(){
     let rows=(platformPlansV61.requests||[]);
     if(platformPlanRequestFilterV61!=='all')rows=rows.filter(x=>x.status===platformPlanRequestFilterV61);
+
+    const money=v=>v==null?'—':platformMoney(Number(v||0));
+
     return rows.map(r=>{
-      const target=r.request_type==='package'?packageLabelV61(r.target_code):((platformPlansV61.addons||[]).find(x=>x.addon_code===r.target_code)?.name_en||r.target_code);
-      return `<div class="ent-request-row">
+      const target=r.request_type==='package'
+        ?packageLabelV61(r.target_code)
+        :((platformPlansV61.addons||[]).find(x=>x.addon_code===r.target_code)?.name_en||r.target_code);
+
+      const stage=r.commercial_stage||(
+        r.status==='approved'?'activated':
+        r.status==='rejected'?'rejected':
+        r.status==='cancelled'?'cancelled':'requested'
+      );
+
+      const stageInfo={
+        requested:[lang==='ar'?'تسعير مطلوب':'Pricing needed','warn'],
+        offered:[lang==='ar'?'العرض عند العميل':'Offer with customer','info'],
+        awaiting_payment:[lang==='ar'?'بانتظار الدفع':'Awaiting payment','warn'],
+        payment_pending:[lang==='ar'?'تأكيد دفع':'Confirm payment','warn'],
+        activated:[lang==='ar'?'مدفوع ومفعل':'Paid & active','success'],
+        customer_declined:[lang==='ar'?'رفض العميل':'Customer declined','danger'],
+        rejected:[lang==='ar'?'مرفوض':'Rejected','danger'],
+        cancelled:[lang==='ar'?'ملغي':'Cancelled','muted']
+      }[stage]||[stage,'muted'];
+
+      const detail=r.request_type==='package'
+        ?`${Number(r.employee_count||0)} ${lang==='ar'?'موظف/ترخيص':'employees/licenses'}${r.offer_total_sar!=null?` · ${money(r.offer_total_sar)}`:''}`
+        :'';
+
+      const actionable=canWritePlansV61()&&r.status==='pending';
+
+      return `<div class="ent-request-row ent-request-v62">
         <div><b>${escapeHtml(r.workspace_name||'—')}</b><span>${r.request_type==='package'?(lang==='ar'?'طلب باقة':'Package request'):(lang==='ar'?'طلب إضافة':'Add-on request')}</span></div>
-        <div><b>${escapeHtml(target)}</b><span>${platformDate(r.requested_at,true)}</span></div>
-        <div>${platformStatusBadge(r.status,r.status==='pending'?'warn':r.status==='approved'?'success':r.status==='rejected'?'danger':'muted')}</div>
-        <div>${canWritePlansV61()&&r.status==='pending'?`<button class="platform-mini-btn primary" onclick="openCommercialRequestReviewV61('${r.id}')">${lang==='ar'?'مراجعة':'Review'}</button>`:''}</div>
+        <div><b>${escapeHtml(target)}</b><span>${detail||platformDate(r.requested_at,true)}</span></div>
+        <div>${platformStatusBadge(stageInfo[0],stageInfo[1])}</div>
+        <div>${actionable?`<button class="platform-mini-btn primary" onclick="openCommercialRequestReviewV61('${r.id}')">${stage==='awaiting_payment'?(lang==='ar'?'تحصيل وتفعيل':'Collect & activate'):(lang==='ar'?'مراجعة':'Review')}</button>`:''}</div>
       </div>`;
     }).join('')||`<div class="platform-empty">${lang==='ar'?'لا توجد طلبات تجارية في هذا العرض':'No commercial requests in this view'}</div>`;
   }
@@ -1020,6 +1049,277 @@ setLang(lang);bootAdmin();
   };
 
   console.info('Tasky Admin V61 — Plans & Entitlements ready');
+})();
+</script>
+
+
+<script id="tasky-admin-v62-commercial-offer-flow-js">
+(function(){
+  const reviewBaseV61=window.openCommercialRequestReviewV61;
+  const reviewDecisionBaseV61=window.reviewCommercialRequestV61;
+
+  function moneyV62(v){
+    return platformMoney(Number(v||0));
+  }
+
+  function stageLabelV62(stage){
+    const ar={
+      requested:'تسعير مطلوب',offered:'العرض عند العميل',awaiting_payment:'بانتظار الدفع',
+      payment_pending:'تأكيد الدفع',activated:'مدفوع ومفعل',customer_declined:'رفض العميل',
+      rejected:'مرفوض',cancelled:'ملغي'
+    };
+    const en={
+      requested:'Pricing needed',offered:'Offer with customer',awaiting_payment:'Awaiting payment',
+      payment_pending:'Confirm payment',activated:'Paid & active',customer_declined:'Customer declined',
+      rejected:'Rejected',cancelled:'Cancelled'
+    };
+    return (lang==='ar'?ar:en)[stage]||stage||'—';
+  }
+
+  window.calcCommercialOfferV62=function(){
+    const employees=Math.max(1,Number(document.getElementById('entOfferEmployees')?.value||1));
+    const unit=Math.max(0,Number(document.getElementById('entOfferUnit')?.value||0));
+    const discount=Math.max(0,Number(document.getElementById('entOfferDiscount')?.value||0));
+    const vat=Math.max(0,Number(document.getElementById('entOfferVat')?.value||0));
+    const cycle=document.getElementById('entOfferCycle')?.value==='yearly'?'yearly':'monthly';
+    const factor=cycle==='yearly'?12:1;
+    const subtotal=unit*employees*factor;
+    const net=Math.max(0,subtotal-discount);
+    const vatAmount=net*(vat/100);
+    const total=net+vatAmount;
+
+    const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=moneyV62(v)};
+    set('entOfferSubtotal',subtotal);
+    set('entOfferNet',net);
+    set('entOfferVatAmount',vatAmount);
+    set('entOfferTotal',total);
+
+    const seats=document.getElementById('entOfferSeats');
+    if(seats)seats.textContent=String(employees);
+  };
+
+  window.openCommercialRequestReviewV61=function(requestId){
+    const r=(platformPlansV61.requests||[]).find(x=>String(x.id)===String(requestId));
+    if(!r)return;
+
+    if(r.request_type!=='package'){
+      return reviewBaseV61?.(requestId);
+    }
+
+    const p=packageRowV61(r.target_code);
+    const stage=r.commercial_stage||'requested';
+    const employees=Math.max(1,Number(r.employee_count||r.offer_quantity||1));
+    const cycle=r.billing_cycle==='yearly'?'yearly':'monthly';
+    const catalogUnit=cycle==='yearly'
+      ?Number(p?.annual_monthly_price||0)
+      :Number(p?.monthly_price||0);
+    const unit=Number(r.offer_unit_price_sar??catalogUnit??0);
+    const vat=Number(r.offer_vat_rate??15);
+    const discount=Number(r.offer_discount_sar||0);
+    const checkout=String(r.checkout_url||'');
+
+    const readOnly=stage==='activated'||r.status!=='pending';
+    const customerAccepted=stage==='awaiting_payment'||stage==='payment_pending';
+
+    document.getElementById('addModalBody').innerHTML=`
+      <div class="modal-head">
+        <div>
+          <h3>${lang==='ar'?'مراجعة وتسعير الطلب':'Review & price request'}</h3>
+          <div class="subtle">${escapeHtml(r.workspace_name||'')} · ${escapeHtml(packageLabelV61(r.target_code))}</div>
+        </div>
+        <button class="modal-close" onclick="closeAddModal()">×</button>
+      </div>
+
+      <div class="ent-review-card ent-review-v62">
+        <span>${lang==='ar'?'حالة الطلب':'Commercial stage'}</span>
+        <b>${escapeHtml(stageLabelV62(stage))}</b>
+        <small>${platformDate(r.requested_at,true)}</small>
+      </div>
+
+      <div class="ent-v62-request-meta">
+        <div><span>${lang==='ar'?'عدد الموظفين المطلوب':'Requested employees'}</span><b>${employees}</b></div>
+        <div><span>${lang==='ar'?'عدد التراخيص':'Licensed users'}</span><b>${employees}</b></div>
+        <div><span>${lang==='ar'?'دورة الفوترة':'Billing cycle'}</span><b>${cycle==='yearly'?(lang==='ar'?'سنوي':'Yearly'):(lang==='ar'?'شهري':'Monthly')}</b></div>
+      </div>
+
+      ${readOnly?`
+        <div class="platform-access-note">${lang==='ar'?'هذا الطلب مغلق ولا يمكن تعديل عرضه.':'This request is closed and its offer cannot be edited.'}</div>
+      `:`
+        <div class="platform-form-grid ent-v62-offer-form">
+          <div class="field">
+            <label>${lang==='ar'?'عدد الموظفين':'Employee count'}</label>
+            <input id="entOfferEmployees" type="number" min="1" value="${employees}" oninput="calcCommercialOfferV62()">
+            <small>${lang==='ar'?'عدد التراخيص يساوي هذا العدد تلقائيًا.':'Licensed users always equal this count.'}</small>
+          </div>
+          <div class="field">
+            <label>${lang==='ar'?'التراخيص':'Licensed users'}</label>
+            <div class="ent-v62-readonly-number" id="entOfferSeats">${employees}</div>
+          </div>
+          <div class="field">
+            <label>${lang==='ar'?'سعر الموظف / شهر':'Price per employee / month'}</label>
+            <input id="entOfferUnit" type="number" min="0" step="0.01" value="${unit||''}" oninput="calcCommercialOfferV62()">
+          </div>
+          <div class="field">
+            <label>${lang==='ar'?'دورة الفوترة':'Billing cycle'}</label>
+            <select id="entOfferCycle" onchange="calcCommercialOfferV62()">
+              <option value="monthly" ${cycle==='monthly'?'selected':''}>${lang==='ar'?'شهري':'Monthly'}</option>
+              <option value="yearly" ${cycle==='yearly'?'selected':''}>${lang==='ar'?'سنوي':'Yearly'}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>${lang==='ar'?'خصم إجمالي':'Discount'}</label>
+            <input id="entOfferDiscount" type="number" min="0" step="0.01" value="${discount}" oninput="calcCommercialOfferV62()">
+          </div>
+          <div class="field">
+            <label>${lang==='ar'?'الضريبة %':'VAT %'}</label>
+            <input id="entOfferVat" type="number" min="0" max="100" step="0.001" value="${vat}" oninput="calcCommercialOfferV62()">
+          </div>
+          <div class="field">
+            <label>${lang==='ar'?'صلاحية العرض بالأيام':'Offer valid days'}</label>
+            <input id="entOfferDays" type="number" min="1" max="90" value="7">
+          </div>
+          <div class="field">
+            <label>${lang==='ar'?'رابط الدفع — اختياري':'Checkout URL — optional'}</label>
+            <input id="entOfferCheckout" dir="ltr" value="${escapeHtml(checkout)}" placeholder="https://...">
+          </div>
+          <div class="field full">
+            <label>${lang==='ar'?'ملاحظة للعميل / داخلية':'Offer note'}</label>
+            <textarea id="entReviewNote" rows="3">${escapeHtml(r.note||'')}</textarea>
+          </div>
+        </div>
+
+        <div class="ent-v62-total-grid">
+          <div><span>${lang==='ar'?'الإجمالي الأساسي':'Subtotal'}</span><b id="entOfferSubtotal">—</b></div>
+          <div><span>${lang==='ar'?'بعد الخصم':'After discount'}</span><b id="entOfferNet">—</b></div>
+          <div><span>${lang==='ar'?'الضريبة':'VAT'}</span><b id="entOfferVatAmount">—</b></div>
+          <div class="total"><span>${lang==='ar'?'الإجمالي للعميل':'Customer total'}</span><b id="entOfferTotal">—</b></div>
+        </div>
+
+        <div class="platform-inline-actions" style="justify-content:flex-end;margin-top:12px">
+          <button class="platform-mini-btn danger" onclick="rejectCommercialRequestV62('${requestId}')">${lang==='ar'?'رفض الطلب':'Reject request'}</button>
+          <button class="platform-mini-btn" onclick="sendCommercialOfferV62('${requestId}')">${stage==='offered'?(lang==='ar'?'تحديث وإعادة إرسال العرض':'Update offer'):(lang==='ar'?'إرسال العرض للعميل':'Send offer')}</button>
+          ${customerAccepted?`<button class="platform-mini-btn primary" onclick="confirmCommercialPaymentV62('${requestId}')">${lang==='ar'?'تأكيد الدفع والتفعيل':'Confirm payment & activate'}</button>`:''}
+        </div>
+      `}
+
+      ${customerAccepted?`
+        <div class="divider"></div>
+        <div class="field">
+          <label>${lang==='ar'?'مرجع الدفع عند التأكيد':'Payment reference when confirming'}</label>
+          <input id="entPaymentRef" placeholder="${lang==='ar'?'تحويل بنكي / مرجع بوابة الدفع':'Bank transfer / gateway reference'}">
+        </div>
+      `:''}
+    `;
+
+    document.getElementById('addModalBody').classList.add('marketing-modal','ent-modal');
+    document.getElementById('addModalOverlay').classList.remove('hidden');
+    setTimeout(calcCommercialOfferV62,0);
+  };
+
+  window.sendCommercialOfferV62=async function(requestId){
+    if(!canWritePlansV61())return;
+
+    const employees=Math.max(1,Number(document.getElementById('entOfferEmployees')?.value||1));
+    const unit=Number(document.getElementById('entOfferUnit')?.value||0);
+    if(!(unit>0)){
+      taskyToast(lang==='ar'?'حدد سعر الموظف أولًا':'Enter the per-employee price first',{tone:'warning'});
+      return;
+    }
+
+    const payload={
+      p_request_id:requestId,
+      p_employee_count:employees,
+      p_unit_price_sar:unit,
+      p_billing_cycle:document.getElementById('entOfferCycle')?.value==='yearly'?'yearly':'monthly',
+      p_discount_sar:Number(document.getElementById('entOfferDiscount')?.value||0),
+      p_vat_rate:Number(document.getElementById('entOfferVat')?.value||0),
+      p_offer_valid_days:Math.max(1,Number(document.getElementById('entOfferDays')?.value||7)),
+      p_checkout_url:document.getElementById('entOfferCheckout')?.value.trim()||null,
+      p_note:document.getElementById('entReviewNote')?.value.trim()||null
+    };
+
+    const {error}=await sb.rpc('tasky_platform_send_commercial_offer_v62',payload);
+    if(error){
+      showTaskyDialog({title:lang==='ar'?'تعذّر إرسال العرض':'Could not send offer',message:error.message,tone:'error'});
+      return;
+    }
+
+    closeAddModal();
+    await fetchPlatformAdminData();
+    taskyToast(lang==='ar'?'تم إرسال السعر والعرض لصاحب مساحة العمل':'Offer sent to workspace owner',{tone:'success'});
+  };
+
+  window.confirmCommercialPaymentV62=async function(requestId){
+    if(!canWritePlansV61())return;
+
+    const ref=document.getElementById('entPaymentRef')?.value.trim()||null;
+    const ok=await taskyConfirm(
+      lang==='ar'
+        ?'سيتم تسجيل الدفع وتفعيل Tasky HR بعدد تراخيص يساوي عدد الموظفين في العرض. متابعة؟'
+        :'Payment will be recorded and Tasky HR activated with licensed users equal to the offer employee count. Continue?',
+      {title:lang==='ar'?'تأكيد الدفع والتفعيل':'Confirm payment & activate',tone:'warning',confirmText:lang==='ar'?'تأكيد':'Confirm'}
+    );
+    if(!ok)return;
+
+    const {error}=await sb.rpc('tasky_platform_confirm_commercial_payment_v62',{
+      p_request_id:requestId,
+      p_payment_reference:ref,
+      p_note:document.getElementById('entReviewNote')?.value.trim()||null
+    });
+
+    if(error){
+      showTaskyDialog({title:lang==='ar'?'تعذّر تأكيد الدفع':'Could not confirm payment',message:error.message,tone:'error'});
+      return;
+    }
+
+    closeAddModal();
+    await fetchPlatformAdminData();
+    taskyToast(lang==='ar'?'تم تأكيد الدفع وتفعيل الباقة':'Payment confirmed and package activated',{tone:'success'});
+  };
+
+  window.rejectCommercialRequestV62=async function(requestId){
+    const ok=await taskyConfirm(
+      lang==='ar'?'رفض هذا الطلب التجاري؟':'Reject this commercial request?',
+      {title:lang==='ar'?'رفض الطلب':'Reject request',tone:'danger',confirmText:lang==='ar'?'رفض':'Reject'}
+    );
+    if(!ok)return;
+
+    const {error}=await sb.rpc('tasky_platform_reject_commercial_request_v62',{
+      p_request_id:requestId,
+      p_note:document.getElementById('entReviewNote')?.value.trim()||null
+    });
+    if(error){
+      showTaskyDialog({title:lang==='ar'?'تعذّر رفض الطلب':'Could not reject request',message:error.message,tone:'error'});
+      return;
+    }
+    closeAddModal();
+    await fetchPlatformAdminData();
+  };
+
+  if(!document.getElementById('tasky-admin-v62-commercial-css')){
+    const style=document.createElement('style');
+    style.id='tasky-admin-v62-commercial-css';
+    style.textContent=`
+      .ent-request-v62{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) auto auto}
+      .ent-v62-request-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0}
+      .ent-v62-request-meta>div,.ent-v62-total-grid>div{border:1px solid var(--border);border-radius:10px;padding:9px;background:var(--paper)}
+      .ent-v62-request-meta span,.ent-v62-total-grid span{display:block;font-size:8px;color:var(--muted)}
+      .ent-v62-request-meta b,.ent-v62-total-grid b{display:block;font-size:11px;margin-top:3px}
+      .ent-v62-offer-form small{font-size:7.5px;color:var(--muted);display:block;margin-top:3px}
+      .ent-v62-readonly-number{height:37px;display:flex;align-items:center;padding:0 10px;border:1px solid var(--border);border-radius:10px;background:var(--paper);font-weight:900}
+      .ent-v62-total-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}
+      .ent-v62-total-grid .total{border-color:color-mix(in srgb,var(--green) 32%,var(--border));background:var(--green-tint)}
+      .ent-v62-total-grid .total b{color:var(--green);font-size:13px}
+      @media(max-width:700px){
+        .ent-v62-request-meta,.ent-v62-total-grid{grid-template-columns:1fr 1fr}
+        .ent-request-v62{grid-template-columns:1fr}
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  window.TASKY_ADMIN_COMMERCIAL_OFFER_V62=true;
+  window.TASKY_ADMIN_BUILD='V62';
 })();
 </script>
 
